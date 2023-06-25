@@ -51,9 +51,6 @@ def safe_copy(src, dst, retry_delay=10):
     while os.path.basename(src) not in os.listdir(dst):
         try:
             shutil.copy(src, dst)
-            if os.path.isfile(src):
-                os.remove(src)
-            return True
         except (PermissionError, RuntimeError):
             retries += 1
             time.sleep(retry_delay)
