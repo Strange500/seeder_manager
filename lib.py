@@ -70,7 +70,9 @@ def safe_copy(src, dst, retry_delay=10):
     retries = 0
     while os.path.basename(src) not in os.listdir(dst):
         try:
+            print(f"cpy {src}")
             shutil.copy(src, dst)
+            print(f"end copy {src}")
         except (PermissionError, RuntimeError):
             retries += 1
             time.sleep(retry_delay)
@@ -88,6 +90,15 @@ def get_directory_size(directory):
             total_size += os.path.getsize(filepath)
 
     return total_size
+
+def get_file_paths(directory):
+    file_paths = []
+    for root, directories, files in os.walk(directory):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            file_paths.append(file_path)
+    return file_paths
+
 def check_json(path):
     """
     Checks if the given file is a valid JSON file.
@@ -137,7 +148,13 @@ def already_scan(path:str):
             return True
     return False
 def get_first_parent_directory(file_path):
-    parent_directory = os.path.basename(os.path.dirname(file_path))
+    directory, filename = os.path.split(file_path)
+    if len(filename) > 10:
+        directory, filename = os.path.split(file_path)
+        p = get_first_parent_directory(directory)
+    else:
+        p = filename
+    parent_directory = p
     return parent_directory
 def transfert_upload(path:str):
     dst = os.path.join(Manager.redirect_dir, get_first_parent_directory(path))
@@ -202,7 +219,11 @@ class Manager:
                                       "path": path}
 
         save_upload(Manager.upload_data_file)
-        transfert_upload(path)
+        if os.path.isfile(path):
+            transfert_upload(path)
+        elif os.path.isdir(path):
+            for file in get_file_paths(path):
+                transfert_upload(file)
 
     def scan_dir(target_dir:str):
         for file in os.listdir(target_dir):

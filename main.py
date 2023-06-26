@@ -2,6 +2,7 @@ from lib import *
 import time
 
 if __name__ == "__main__":
+    print("started")
     while True:
         for dir in Manager.scan_dir_path:
             Manager.scan_dir(dir)
