@@ -5,3 +5,6 @@
 *.pyc
 manger.conf
 manger.conf
+*.mkv
+*.mp4
+*.nfo

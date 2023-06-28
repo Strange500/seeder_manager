@@ -46,6 +46,25 @@ def stop_torrent_with_file_name(qbittorrent_host, port, username, password, file
 
     print("Torrent not found:", file_name)
 
+def search_and_wait_torrent(qbittorrent_host, port, username, password):
+    # Connexion à l'API de qBittorrent
+    qb = Client(host=qbittorrent_host, port=port, username=username, password=password)
+
+    # Recherche du torrent correspondant au chemin de téléchargement
+    torrents = qb.torrents.info()
+    found_torrent = None
+    for i in range(2):
+        for torrent in torrents:
+            #while torrent['state'] not in ["pausedDL", 'uploading', "stalledUP","error", "missingFiles", "downloading","stalledDL", "pausedDL"]:
+            while torrent['state'] == "moving":
+                print(f"waiting for {torrent['name']}")
+                torrent = qb.torrents.info(torrent_hashes=torrent["hash"])[0]
+                time.sleep(1)
+            print("stopped")
+
+
+
+
 def safe_copy(src, dst, retry_delay=10):
     """
     Safely moves a file from the source to the destination path.
@@ -68,9 +87,9 @@ def safe_copy(src, dst, retry_delay=10):
         raise FileNotFoundError(f"{src} is not a file")
 
     retries = 0
+    print(f"cpy {src}")
     while os.path.basename(src) not in os.listdir(dst):
         try:
-            print(f"cpy {src}")
             shutil.copy(src, dst)
             print(f"end copy {src}")
         except (PermissionError, RuntimeError):
@@ -217,18 +236,20 @@ class Manager:
                                       "start_date": start_date,
                                       "limit_date": limit_date,
                                       "path": path}
-
-        save_upload(Manager.upload_data_file)
+        search_and_wait_torrent(Manager.qbit_host, Manager.qbit_port, Manager.qbit_user, Manager.qbit_pass)
         if os.path.isfile(path):
+            print(path)
             transfert_upload(path)
         elif os.path.isdir(path):
             for file in get_file_paths(path):
+                print(file)
                 transfert_upload(file)
+        save_upload(Manager.upload_data_file)
+
 
     def scan_dir(target_dir:str):
         for file in os.listdir(target_dir):
             if not already_scan(os.path.join(target_dir, file)):
-                print(file)
                 Manager.add_upload(os.path.join(target_dir, file))
 
     def get_older(tkt=None):
@@ -278,5 +299,4 @@ class Upload:
         if os.path.isdir(self.path):
             shutil.rmtree(self.path)
         Manager.delete(self.id)
-
 
