@@ -8,3 +8,5 @@ manger.conf
 *.mkv
 *.mp4
 *.nfo
+upload_data.json
+manager.conf
