@@ -1,5 +1,6 @@
-from lib import  *
-import  time
+from lib import *
+import time
+
 if __name__ == "__main__":
     while True:
         for dir in Manager.scan_dir_path:

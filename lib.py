@@ -1,5 +1,6 @@
 
 import json, os, shutil, threading, time
+from qbittorrentapi import Client
 from datetime import  datetime, timedelta
 from copy import deepcopy
 from typing import Tuple, Dict
@@ -26,6 +27,25 @@ def parse_conf(conf_file_path: str):
 
                 conf[key] = value
     return conf
+
+def stop_torrent_with_file_name(qbittorrent_host, port, username, password, file_name):
+    # Connect to qBittorrent
+    qb = Client(host=qbittorrent_host, port=port, username=username, password=password)
+
+    # Get the list of torrents
+    torrents = qb.torrents.info()
+
+    # Iterate through the torrents and find the one containing the specified file name
+    for torrent in torrents:
+        torrent_name = torrent['name']
+        if file_name in torrent_name:
+            torrent_hash = torrent['hash']
+            qb.torrents.pause(torrent_hash)
+            print("Torrent stopped:", torrent_name)
+            return
+
+    print("Torrent not found:", file_name)
+
 def safe_copy(src, dst, retry_delay=10):
     """
     Safely moves a file from the source to the destination path.
@@ -102,7 +122,14 @@ def gen_id(list_id: list):
     return n_id
 def save_upload(target_file: str):
     path = os.path.join(os.getcwd(), target_file)
-    json.dump(Manager.upload_data, open(path, "w"), indent=5)
+    done = False
+    while not done:
+        try:
+            json.dump(Manager.upload_data, open(path, "w"), indent=5)
+            done = True
+        except PermissionError:
+            time.sleep(1)
+            pass
 
 def already_scan(path:str):
     for upload in Manager.upload_data:
@@ -141,6 +168,11 @@ class Manager:
     redirect_dir = conf["redirect_directory"]
     max_size = int(conf["number_of_bit_max"])
     day_delay = int(conf["day_delay"])
+
+    qbit_host = conf["qbittorrent_api_host"]
+    qbit_port = int(conf["qbittorrent_api_port"])
+    qbit_user = conf["username"]
+    qbit_pass = conf["password"]
 
     def delete(id:int):
         if Manager.upload_data.get(str(id), None) is None:
@@ -219,6 +251,7 @@ class Upload:
 
 
     def delete_upload(self):
+        stop_torrent_with_file_name(Manager.qbit_host, Manager.qbit_port, Manager.qbit_user, Manager.qbit_pass, os.path.basename(self.path))
         if os.path.isfile(self.path):
             os.remove(self.path)
         if os.path.isdir(self.path):
@@ -226,6 +259,3 @@ class Upload:
         Manager.delete(self.id)
 
 
-
-if __name__ == "__main__":
-    print(datetime.now().strftime("%d-%m-%Y"))
