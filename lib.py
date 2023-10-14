@@ -92,7 +92,7 @@ def safe_copy(src, dst, retry_delay=10):
         try:
             shutil.copy(src, dst)
             print(f"end copy {src}")
-        except (PermissionError, RuntimeError):
+        except (PermissionError, RuntimeError, FileNotFoundError):
             retries += 1
             time.sleep(retry_delay)
 
